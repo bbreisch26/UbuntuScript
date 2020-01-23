@@ -10,6 +10,10 @@ sudo chage -W 5 $user
 \cp $HOME/Desktop/UbuntuScript/login.defs /etc/
 sudo apt-get install gufw
 sudo ufw enable
+sysctl -n net.ipv4.tcp_syncookies
+echo "net.ipv6.conf.all.disable_ipv6 = 1" | sudo tee -a /etc/sysctl.conf
+echo 0 | sudo tee /proc/sys/net/ipv4/ip_forward
+echo "nospoof on" | sudo tee -a /etc/host.conf
 sudo apt-get remove zenmap
 sudo apt-get remove nmap
 sudo apt-get remove wireshark
@@ -22,33 +26,7 @@ sudo apt-get remove samba
 sudo apt-get remove kismet
 sudo updatedb	
 locate *.mp3 *.txt *.mp4 *.wav *.avi | grep ^/home
-chown root:root /etc/passwd 
-chmod 644 /etc/passwd
-chown root:shadow /etc/shadow 
-chmod o-rwx,g-wx /etc/shadow 
-chown root:root /etc/group 
-chmod 644 /etc/group
-chown root:shadow /etc/gshadow 
-chmod o-rwx,g-rw /etc/gshadow
-chown root:root /etc/passwd-
-chmod u-x,go-wx /etc/passwd-
-chown root:root /etc/shadow-
-chown root:root /etc/group-
-chmod u-x,go-wx /etc/group- 
-chown root:shadow /etc/shadow- 
-chmod o-rwx,g-rw /etc/shadow- 
-chown root:root /etc/gshadow- 
-chown root:shadow /etc/gshadow- 
-chmod o-rwx,g-rw /etc/gshadow-
-cat /etc/passwd | awk -F: '($3 == 0) { print $1 }' root
-grep ^shadow:[^:]*:[^:]*:[^:]+ /etc/group # awk -F: '($4 == "<shadow-gid>"){ print }' /etc/passwd
-df --local -P | awk {'if (NR!=1) print $6'} | xargs -I '{}' find '{}' -xdev -type d -perm -0002 2>/dev/null | xargs chmod a+t
-chown root:root /boot/grub/grub.cfg 
-chmod og-rwx /boot/grub/grub.cfg
-chown root:root /etc/issue 
-chmod 644 /etc/issue 
-chown root:root /etc/issue.net 
-chmod 644 /etc/issue.net
+
 systemctl disable snmpd
 systemctl disable squid
 systemctl disable smbd 
@@ -61,5 +39,12 @@ systemctl disable cups
 systemctl disable avahi-daemon 
 systemctl disable autofs
 cp $HOME/Desktop/UbuntuScript/systemwide_user.js /etc/firefox/syspref.js
+
+echo "kernel.dmesg_restrict = 1" > /etc/sysctl.d/50-dmesg-restrict.conf
+echo "kernel.kptr_restrict = 1" > /etc/sysctl.d/50-kptr-restrict.conf
+echo "kernel.exec-shield = 2" > /etc/sysctl.d/50-exec-shield.conf
+echo "kernel.randomize_va_space=2" > /etc/sysctl.d/50-rand-va-space.conf
+systemctl enable rsyslog
+systemctl start rsyslog
 done
 
