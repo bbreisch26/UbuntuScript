@@ -44,11 +44,11 @@ sudo systemctl start rsyslog
 # Function to check if a user is an administrator
 is_admin() {
     local user="$1"
-    if sudo getent group sudo | grep -q "\b$user\b"; then
+    if sudo getent group sudo | grep -q "$user"; then
         return 1  # User is in the sudo group
-    elif sudo getent group admin | grep -q "\b$user\b"; then
+    elif sudo getent group admin | grep -q "$user"; then
         return 1  # User is in the admin group
-    elif sudo grep -q "^$user" /etc/sudoers; then
+    elif sudo grep -q "$user" /etc/sudoers; then
         return 1  # User is explicitly listed in sudoers
     else
         return 0  # User is not an admin
@@ -92,7 +92,7 @@ done
 # Function to add a user with a clear-text password
 add_user_with_password() {
     local username="$1"
-    local password="$2"
+    local password="BlasterR0x123!"
     sudo useradd -m -p "$(echo "$password" | openssl passwd -1 -stdin)" "$username"
     echo "Added user $username with password $password"
 }
@@ -104,17 +104,30 @@ delete_user() {
     echo "Deleted user $username"
 }
 
+change_password() {
+    local username="$1"
+    local password="$2"
+    echo $password | sudo passwd $username
+    echo "Changed $user 's password"
+}
+
 # Main script starts here
 while IFS= read -r line; do
     username=$(echo "$line" | awk '{print $1}')
-    password=$(echo "$line" | awk '{print $2}')
-
+    password="BlasterR0x123!"
     if id "$username" &>/dev/null; then
-        delete_user "$username"
+        change password "$username" "$password" 
     else
-        add_user_with_password "$username" "$password"
+        add_user_with_password "$username"
     fi
 done < users.txt
+
+current_users=$(awk -F:':' '{ print $1}' /etc/passwd)
+for user in $current_admins; do
+    if ! grep -q "^$user$" users.txt; then # admin file is called admins.txt
+        delete_user "$user"
+    fi
+done
 
 #### Set permissions of important files ####
 
