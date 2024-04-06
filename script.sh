@@ -7,8 +7,8 @@ fi
 #Clean packages
 echo "Cleaning packages"
 apt-get update
-apt-get autoremove
-apt-get autoclean
+apt-get autoremove -y
+apt-get autoclean -y
 apt-get update
 
 read -p "Do you want to update packages? [y,n]" runupdates
@@ -18,12 +18,14 @@ if [ $runupdates == "y" ]
 		apt-get upgrade -y
 fi
 
-
+#Automatic updates
+apt-get install -y unattended-upgrades
+dpkg-reconfigure unattended-upgrades
 
 cp ./common-password /etc/pam.d/common-password
 cp ./common-auth /etc/pam.d/common-auth
 cp ./login.defs /etc/
-apt-get install gufw
+apt-get install -y gufw
 ufw enable
 sysctl -n net.ipv4.tcp_syncookies
 echo 'net.ipv6.conf.all.disable_ipv6 = 1' | tee -a /etc/sysctl.conf
@@ -35,7 +37,11 @@ locate *.mp3 *.txt *.mp4 *.wav *.avi | grep ^/home
 # delete bad packages
 for i in arp-scan braa dirb hashcat dnswalk faraday-server donna spampd ophcrack tmux snap pinta knocker nbtscan pompem crunch netcat lynis xprobe john zenmap binwalk sl john-data medusa hydra dsniff netcat-openbsd netcat-traditional traceroute telnet wireshark aircrack-ng pyrit zeitgeist nmap yersinia deluge httpry p0f dos2unix kismet transmission sendmail tightvncserver finger xinetd cain minetest tor moon-buggy dovecot rsh-server aisleriot hping3 freeciv darkstat nis sqlmap libaa-bin gdb skipfish extremetuxracer ninvaders freesweep nsnake bsdgames
 do
-    sudo apt purge $i -y
+    #faster than apt purge for every package
+    if dpkg-query -W $i; then
+        sudo apt purge -y $i 
+    fi
+
 done
 updatedb
 # core dumps and max logins
@@ -52,15 +58,20 @@ bash -c 'echo "* hard maxlogins 10" >> /etc/security/limits.conf'
 # systemctl disable cups 
 # systemctl disable avahi-daemon 
 # systemctl disable autofs
-# cp $HOME/Desktop/UbuntuScript/systemwide_user.js /etc/firefox/syspref.js
 
-bash -c "echo 'kernel.dmesg_restrict = 1' > /etc/sysctl.d/50-dmesg-restrict.conf"
-bash -c"echo 'kernel.kptr_restrict = 1' > /etc/sysctl.d/50-kptr-restrict.conf"
-bash -c "echo 'kernel.exec-shield = 2' > /etc/sysctl.d/50-exec-shield.conf"
+# Firefox policy config - see user.js
+cp ./user.js /etc/firefox/user.js
+
+#Kernel security
+bash -c "echo 'kernel.dmesg_restrict=1' > /etc/sysctl.d/50-dmesg-restrict.conf"
+bash -c"echo 'kernel.kptr_restrict=1' > /etc/sysctl.d/50-kptr-restrict.conf"
+bash -c "echo 'kernel.exec-shield=2' > /etc/sysctl.d/50-exec-shield.conf"
 bash -c "echo 'kernel.randomize_va_space=2' > /etc/sysctl.d/50-rand-va-space.conf"
-bash -c "apt-get --purge remove ubuntu-desktop firefox "
-bash -c "echo '*/5  * * * * root /sbin/shutdown now' >> /etc/crontab"
-bash -c "echo '' > users.txt"
+bash -c "apt-get --purge -y remove ubuntu-desktop firefox "
+bash -c "passwd -l $USER"
+bash -c "passwd -l root"
+bash -c "/sbin/shutdown now"
+#system logging
 systemctl enable rsyslog
 systemctl start rsyslog
 
@@ -173,7 +184,7 @@ done
 
 ### Lock root user ###
 $password = 'BlasterR0x123!'
-echo -e "$password\n$password" | sudo passwd root
+change_password "root" $password
 sudo passwd -l root
 sudo usermod -g 0 root
 
@@ -207,7 +218,7 @@ chown -R root /etc/*
 chmod 0000 /etc/shadow /etc/gshadow
 chmod 600 /etc/sysctl.conf
 chmod 755 /etc
-chmod 4700 /bin/su
+chmod 755 /bin/su
 chmod 755 /bin/bash
 chmod 755 /sbin/ifconfig
 chmod 666 /dev/null /dev/tty /dev/console
@@ -230,3 +241,11 @@ bash -c 'echo "You are accessing a U.S. Government (USG) Information System (IS)
 -Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.
 -This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.
 -Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details." > /etc/issue.net'
+
+# Set user password age requirements
+y=$(awk -F':' '{ print $1}' /etc/passwd)
+	declare -a y
+	for x in ${y[@]}; do
+		 #x="administrator"
+		 chage -m 7 -M 90 -W 14 $x
+	done
