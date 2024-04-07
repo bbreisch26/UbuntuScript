@@ -22,8 +22,15 @@ fi
 apt-get install -y unattended-upgrades
 dpkg-reconfigure unattended-upgrades
 
+#pam dependencies
+apt-get install -y libpam-cracklib
+
+
 cp ./common-password /etc/pam.d/common-password
-cp ./common-auth /etc/pam.d/common-auth
+# Common-auth sets lockout policy, currently broken in this script
+# Newer versions of debian/ubuntu use pam_faillock.so while older ones use pam_tally2.so
+# Just do this part by hand
+#cp ./common-auth /etc/pam.d/common-auth
 cp ./login.defs /etc/
 apt-get install -y gufw
 ufw enable
@@ -61,16 +68,17 @@ bash -c 'echo "* hard maxlogins 10" >> /etc/security/limits.conf'
 
 # Firefox policy config - see user.js
 cp ./user.js /etc/firefox/user.js
+#cp ./firefox-esr.js /etc/firefox-esr/firefox-esr.js # <- debian specific
 
 #Kernel security
 bash -c "echo 'kernel.dmesg_restrict=1' > /etc/sysctl.d/50-dmesg-restrict.conf"
 bash -c"echo 'kernel.kptr_restrict=1' > /etc/sysctl.d/50-kptr-restrict.conf"
 bash -c "echo 'kernel.exec-shield=2' > /etc/sysctl.d/50-exec-shield.conf"
 bash -c "echo 'kernel.randomize_va_space=2' > /etc/sysctl.d/50-rand-va-space.conf"
-bash -c "apt-get --purge -y remove ubuntu-desktop firefox "
-bash -c "passwd -l $USER"
-bash -c "passwd -l root"
-bash -c "/sbin/shutdown now"
+#bash -c "apt-get --purge -y remove ubuntu-desktop firefox "
+#bash -c "passwd -l $USER"
+#bash -c "passwd -l root"
+#bash -c "/sbin/shutdown now"
 #system logging
 systemctl enable rsyslog
 systemctl start rsyslog
@@ -183,8 +191,7 @@ done
 
 
 ### Lock root user ###
-$password = 'BlasterR0x123!'
-change_password "root" $password
+change_password "root" 'BlasterR0x123!'
 sudo passwd -l root
 sudo usermod -g 0 root
 
@@ -220,6 +227,9 @@ chmod 600 /etc/sysctl.conf
 chmod 755 /etc
 chmod 755 /bin/su
 chmod 755 /bin/bash
+chmod u+s /bin/sudo
+chmod u+s /bin/su
+chmod u+s /sbin/unix_chkpwd
 chmod 755 /sbin/ifconfig
 chmod 666 /dev/null /dev/tty /dev/console
 chmod 600 /boot/grub/grub.cfg
